@@ -1,0 +1,7 @@
+const API='https://www.find-tender.service.gov.uk/api/1.0/ocdsReleasePackages';
+export async function onRequestGet(){
+const now=new Date(),from=new Date(now.getTime()-7*86400000);
+let url=API+'?'+new URLSearchParams({updatedFrom:from.toISOString().slice(0,19),updatedTo:now.toISOString().slice(0,19),stages:'tender',limit:'100'});
+const seen=new Set(),releases=[];let partial=false;
+try{for(let i=0;i<2&&url;i++){const u=new URL(url);if(u.protocol!=='https:'||u.hostname!=='www.find-tender.service.gov.uk'||u.pathname!=='/api/1.0/ocdsReleasePackages'||seen.has(url))throw Error('Invalid pagination');seen.add(url);const response=await fetch(url,{headers:{Accept:'application/json'},signal:AbortSignal.timeout(12000)});if(!response.ok)throw Error('Government API HTTP '+response.status);const body=await response.text();if(body.length>4000000)throw Error('Response too large');const data=JSON.parse(body);if(!Array.isArray(data.releases))throw Error('Unexpected response');releases.push(...data.releases);url=data.links?.next?new URL(data.links.next,API).href:null;}partial=Boolean(url);return Response.json({releases,partial,retrieved_at:now.toISOString()},{headers:{'Cache-Control':'public, max-age=300'}})}catch(e){return Response.json({error:'Government data unavailable: '+e.message},{status:502,headers:{'Cache-Control':'no-store'}})}
+}
