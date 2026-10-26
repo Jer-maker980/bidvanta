@@ -21,7 +21,7 @@ function formatDate(value){if(!value)return 'Check source';const d=new Date(valu
 function render(){
  const q=document.querySelector('#term').value.toLowerCase().trim();
  const openOnly=document.querySelector('#openOnly').checked,minScore=Number(document.querySelector('#fitFilter').value),now=Date.now();const matches=notices.filter(n=>n.relevant&&n.score>=minScore&&(!openOnly||!n.deadline||Date.parse(n.deadline)>=now)&&(!q||(n.title+' '+n.description+' '+n.buyer).toLowerCase().includes(q))).sort((a,b)=>b.score-a.score);
- document.querySelector('#results').innerHTML=matches.length?matches.map(n=>'<article class="notice"><h3>'+esc(n.title)+'</h3><p><strong>'+(n.hasEvidence?'Indicative fit: '+n.score+'/100 ('+(n.score>=75?'High':n.score>=45?'Medium':'Low')+')':'Unassessed — insufficient specialist evidence')+'</strong> · '+esc(n.reason)+'</p><p>'+esc(n.description.slice(0,450))+'</p><small>'+esc(n.buyer)+' · Source: '+esc(n.source)+' · Deadline: '+esc(formatDate(n.deadline))+'</small><p>'+(n.url?'<a href="'+esc(n.url)+'" target="_blank" rel="noopener noreferrer">View original notice</a>':'Original notice link unavailable — verify on Find a Tender')+'</p></article>').join(''):'No specialist ecology-related opportunities identified in the currently retrieved records. Coverage is incomplete; this does not mean none exist.';
+ document.querySelector('#results').innerHTML=matches.length?matches.map(n=>'<article class="notice"><h3>'+esc(n.title)+'</h3><p><strong>'+(n.hasEvidence?'Indicative fit: '+n.score+'/100 ('+(n.score>=75?'High':n.score>=45?'Medium':'Low')+')':'Unassessed — insufficient specialist evidence')+'</strong> · '+esc(n.reason)+'</p><p>'+esc(n.description.slice(0,450))+'</p><small>'+esc(n.buyer)+' · Source: '+esc(n.source)+' · Deadline: '+esc(formatDate(n.deadline))+' · '+(n.deadline?(Date.parse(n.deadline)<Date.now()?'Closed':'Open until deadline'):'Deadline unconfirmed')+'</small><p>'+(n.url?'<a href="'+esc(n.url)+'" target="_blank" rel="noopener noreferrer">View original notice</a>':'<span>Direct notice link unavailable — search the official '+esc(n.source)+' portal using the tender title</span>')+'</p></article>').join(''):'No specialist ecology-related opportunities identified in the currently retrieved records. Coverage is incomplete; this does not mean none exist.';
 }
 document.querySelector('#term').oninput=render;document.querySelector('#openOnly').onchange=render;document.querySelector('#fitFilter').onchange=render;
 document.querySelector('#load').onclick=async()=>{
@@ -31,7 +31,7 @@ document.querySelector('#load').onclick=async()=>{
  notices=(data.releases||[]).filter(x=>x.tender&&(!x.tag||x.tag.some(t=>t==='tender'||t==='tenderUpdate'))).map(x=>{
  const t=x.tender||{},title=t.title||'Untitled',description=t.description||'',buyer=x.buyer?.name||x.parties?.find(p=>(p.roles||[]).includes('buyer'))?.name||'Unknown';
  const text=title+' '+description;
- const noticeId=String(x.id||'').match(/(\d{6}-20\d{2})/);
+ const noticeId=[x.id,x.ocid,...(x.relatedProcesses||[]).map(p=>p.identifier)].map(v=>String(v||'').match(/(\d{6}-20\d{2})/)).find(Boolean);
  const url=x._source==='Find a Tender'&&noticeId?'https://www.find-tender.service.gov.uk/Notice/'+noticeId[1]:'';const fit=assess(title,description);
  return {title,description,buyer,deadline:t.tenderPeriod?.endDate||'',url,source:x._source||'Find a Tender',...fit};
  });
