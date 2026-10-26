@@ -1,20 +1,21 @@
-<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>BidVanta — Find it. Assess it. Win it.</title><style>body{font:16px system-ui;background:#f3f7f8;color:#173443;margin:0}header{background:#102b3a;color:white;padding:28px max(24px,calc((100% - 960px)/2))}h1{margin:0;font-size:38px}header p{color:#55dfc5}main{max-width:960px;margin:30px auto;padding:0 18px}.panel{background:white;border:1px solid #d6e1e4;border-radius:14px;padding:22px;margin:20px 0}button{background:#167f86;color:white;border:0;border-radius:8px;padding:13px 20px;font-size:16px;cursor:pointer}.notice{border-top:1px solid #ddd;padding:15px 0}a{color:#096c74}small{color:#53636b}input{padding:10px;border:1px solid #aaa;border-radius:6px;width:min(95%,420px)}</style><header><h1>◈ BidVanta</h1><p>Find it. Assess it. Win it.</p></header><main><section class="panel"><h2>Discover UK public tenders</h2><p>Search current government notices. No fictional listings.</p><label>Filter by keyword <input id="term" placeholder="ecology, habitat, biodiversity"></label><p><button id="load">Load real UK tenders</button></p><p id="status" role="status">No data loaded yet.</p></section><section class="panel"><h2>Opportunities</h2><div id="results">Select “Load real UK tenders” to begin.</div></section><small>Beta service. Scores are keyword-based estimates, not AI judgements. Coverage may be incomplete. Verify eligibility, deadlines and details in the original government notice before bidding. Data provided by Find a Tender.</small></main><script>
+<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>BidVanta — Find it. Assess it. Win it.</title><style>body{font:16px system-ui;background:#f3f7f8;color:#173443;margin:0}header{background:#102b3a;color:white;padding:28px max(24px,calc((100% - 960px)/2))}h1{margin:0;font-size:38px}header p{color:#55dfc5}main{max-width:960px;margin:30px auto;padding:0 18px}.panel{background:white;border:1px solid #d6e1e4;border-radius:14px;padding:22px;margin:20px 0}button{background:#167f86;color:white;border:0;border-radius:8px;padding:13px 20px;font-size:16px;cursor:pointer}.notice{border-top:1px solid #ddd;padding:15px 0}a{color:#096c74}small{color:#53636b}input{padding:10px;border:1px solid #aaa;border-radius:6px;width:min(95%,420px)}</style><header><h1>◈ BidVanta</h1><p>Find it. Assess it. Win it.</p></header><main><section class="panel"><h2>Discover UK public tenders</h2><p>Search current government notices. No fictional listings.</p><label>Filter by keyword <input id="term" placeholder="ecology, habitat, biodiversity"></label><p><button id="load">Load real UK tenders</button></p><p id="status" role="status">No data loaded yet.</p></section><section class="panel"><h2>Opportunities</h2><div id="results">Select “Load real UK tenders” to begin.</div></section><small>Beta service. Scores are rule-based estimates, not AI judgements. Coverage may be incomplete. Verify eligibility, deadlines and details in the original government notice before bidding. Data provided by Find a Tender.</small></main><script>
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 let notices=[];
 const relevant=/\b(ecolog(?:y|ical|ist|ists)|biodivers(?:ity|e)|habitat|wildlife|environmental|conservation|protected species|bat survey|newt|ornitholog|wetland|woodland|nature recovery|environmental impact|ecological survey|habitat survey|landscape ecology|natural capital|river restoration|peatland)\b/i;
 const exclude=/\b(conveyor|wayfinding|software|smartphone|cybersecurity|office furniture|road resurfacing|IT support)\b/i;
 function assess(title,description){
- const text=(title+' '+description).toLowerCase();
- const strong=/ecological (survey|assessment|consult)|ecology (survey|consult)|biodiversity net gain|bat survey|protected species|environmental impact assessment|habitat assessment|ornithological survey|natural capital assessment/i;
- const services=/survey|consult|assessment|monitoring|advisory|audit|feasibility|management plan|impact study/i;
- const delivery=/restocking|tree planting|grounds maintenance|grass cutting|construction|felling|landscaping works|supply and install/i;
- const core=/ecolog|biodivers|habitat|wildlife|wetland|woodland|environmental|conservation|nature recovery|river restoration|peatland/i;
- let score=core.test(text)?35:0;
- if(strong.test(text))score+=45;
- else if(services.test(text))score+=25;
- if(delivery.test(title))score-=30;
- score=Math.max(0,Math.min(100,score));
- return {score,reason:strong.test(text)?'Specialist consultancy or survey language detected':delivery.test(title)?'Delivery/works contract; consultancy fit uncertain':services.test(text)?'Assessment or advisory language detected':'Environmental topic detected; services need checking'};
+ const name=String(title||'').toLowerCase(),body=String(description||'').toLowerCase(),text=name+' '+body;
+ const specialist=/\b(ecolog(?:y|ical|ist|ists)|biodiversity|habitat|wildlife|protected species|ornitholog(?:y|ical)|bat survey|newt survey|peatland restoration|river restoration|nature recovery|environmental impact assessment|natural capital|bng)\b/i;
+ const consultancy=/\b(survey(?:s|ing)?|consult(?:ancy|ant|ants|ing)?|assessment(?:s)?|monitoring|advisory|feasibility|impact study|ecological clerk of works|management plan)\b/i;
+ const direct=/ecological (survey|assessment|consult)|ecology (survey|consult)|biodiversity net gain|bat survey|protected species survey|habitat (survey|assessment)|environmental impact assessment|ornithological survey|natural capital assessment/i;
+ const broad=/\b(environmental|conservation|woodland|landscaping|sustainability|green|nature)\b/i;
+ const works=/\b(refurbishment|modernisation|framework agreement|building works|construction|restocking|tree planting|grounds maintenance|grass cutting|roadworks|roofing|painting|conveyor|felling|landscaping works)\b/i;
+ const strong=specialist.test(text),service=consultancy.test(text),focused=direct.test(text),physical=works.test(name);
+ let score=focused?90:strong&&service?75:strong?50:broad.test(text)?20:0;
+ if(physical)score=Math.max(0,score-45);
+ const relevant=score>=45;
+ const reason=physical?'Physical works or broad framework; consultancy fit needs verification':focused?'Specific ecological or environmental consultancy requirement detected':strong&&service?'Specialist topic with survey or advisory language':strong?'Specialist environmental subject; delivery requirements unclear':'Broad environmental language only';
+ return {score,relevant,reason};
 }
 function formatDate(value){if(!value)return 'Check source';const d=new Date(value);return Number.isNaN(d.getTime())?'Check source':new Intl.DateTimeFormat('en-GB',{day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit',timeZone:'Europe/London',timeZoneName:'short'}).format(d)}
 function render(){
@@ -32,10 +33,10 @@ document.querySelector('#load').onclick=async()=>{
  const text=title+' '+description;
  const noticeId=String(x.id||'').match(/(?:^|[^0-9])(\d{6}-20\d{2})(?:$|[^0-9])/);
  const url=noticeId?'https://www.find-tender.service.gov.uk/Notice/'+noticeId[1]:'';const fit=assess(title,description);
- return {title,description,buyer,deadline:t.tenderPeriod?.endDate||'',url,...fit,relevant:relevant.test(text)&&!exclude.test(title)};
+ return {title,description,buyer,deadline:t.tenderPeriod?.endDate||'',url,...fit};
  });
  const count=notices.filter(n=>n.relevant).length;
- status.textContent='Found '+count+' potentially relevant environmental notices among '+notices.length+' recent official records (30-day window, up to 8 pages)'+(data.partial?' (partial feed)':'')+'. Results are indicative, not comprehensive. Verify at source.';
+ status.textContent='Found '+count+' specialist environmental candidates among '+notices.length+' recent official records (30-day window, up to 8 pages)'+(data.partial?' (partial feed)':'')+'. Results are indicative, not comprehensive. Verify at source.';
  render();
  }catch(e){status.textContent='Live feed unavailable: '+e.message;document.querySelector('#results').textContent='No live opportunities available. Please try again later.'}
 };
